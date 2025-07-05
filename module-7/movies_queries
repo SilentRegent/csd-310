@@ -1,0 +1,62 @@
+import mysql.connector
+from mysql.connector import errorcode
+from db_config import secrets
+
+config = {
+    "user": secrets["USER"],
+    "password": secrets["PASSWORD"],
+    "host": secrets["HOST"],
+    "port": secrets["PORT"],      
+    "database": secrets["DATABASE"],
+    "raise_on_warnings": True
+}
+
+try:
+    db = mysql.connector.connect(**config)
+    cursor = db.cursor()
+
+    print(f"Connected to MySQL on {secrets['HOST']}:{secrets['PORT']} as {secrets['USER']}")
+
+    # Query 1: Select all fields from the studio table 
+    print("\n*Studio RECORDS ")
+    cursor.execute("SELECT * FROM studio")
+    for studio in cursor.fetchall():
+        print(f"Studio ID: {studio[0]}, Name: {studio[1]}")
+
+    # Query 2: Select all fields from the genre table 
+    print("\n*Genre RECORDS ") 
+    cursor.execute("SELECT * FROM genre")
+    for genre in cursor.fetchall():
+        print(f"Genre ID: {genre[0]}, Name: {genre[1]}")
+
+    # Query 3: Movies with runtime less than 120 minutes 
+    print("\n*Short Film RECORDS ")
+    cursor.execute("SELECT film_name, film_runtime FROM film WHERE film_runtime < 120")
+    for film in cursor.fetchall():
+        print(f"Film: {film[0]}, Runtime: {film[1]} minutes")
+
+    # Query 4: Grouped by director 
+    print("\n*Director RECORDS in Grouped Order ")
+    cursor.execute("""
+        SELECT film_director, GROUP_CONCAT(film_name SEPARATOR ', ') AS films
+        FROM film
+        GROUP BY film_director
+    """)
+    for director, films in cursor.fetchall():
+        print(f"Director: {director}, Films: {films}")
+
+    input("\n\nPress Enter to exit...")
+
+except mysql.connector.Error as err:
+    if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+        print("The supplied username or password are invalid")
+    elif err.errno == errorcode.ER_BAD_DB_ERROR:
+        print("The specified database does not exist")
+    else:
+        print(err)
+
+finally:
+    if 'db' in locals() and db.is_connected():
+        db.close()
+        print("\nMySQL connection closed.")
+
